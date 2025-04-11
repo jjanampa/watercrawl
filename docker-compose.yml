@@ -104,13 +104,16 @@ services:
   app:
     <<: *app
     restart: always
-
+    networks:
+      - dokploy-network
     command: gunicorn -b 0.0.0.0:9000 -w 2 watercrawl.wsgi:application --access-logfile - --error-logfile - --timeout 3600
     
   celery:
     <<: *app
     restart: always
     command: celery -A watercrawl worker -B -l info --statedb=.celery/worker.state
+    networks:
+      - dokploy-network
 
   frontend:
     build:
@@ -121,15 +124,19 @@ services:
     restart: always
     environment:
       - VITE_API_URL=${PROTOCOL}://${DOMAIN}
+    networks:
+      - dokploy-network
 
   nginx:
     image: ${NEGINX_IMAGE:-nginx:1.25-alpine}
     restart: always
     ports:
-      - "80"
+      - "80:80"
     volumes:
       - ./nginx:/etc/nginx/conf.d:ro
       - storage_volume:/var/www/storage
+    networks:
+      - dokploy-network
     depends_on:
       - frontend
       - app
@@ -146,6 +153,8 @@ services:
   #     test: ["CMD", "curl", "-f", "http://localhost:9001/minio/health/live"]
   #     interval: 30s
   #     timeout: 20s
+  #   networks:
+  #     - dokploy-network
 
   postgres:
     image: ${POSTGRES_IMAGE:-postgres:17.2-alpine3.21}
@@ -160,6 +169,8 @@ services:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
       timeout: 5s
+    networks:
+      - dokploy-network
 
   playwright:
     image: ${PLAYWRIGHT_IMAGE:-watercrawl/playwright:1.1}
@@ -168,15 +179,23 @@ services:
       - AUTH_API_KEY=VQSexeRRoc2L6ChBzuc2oqfiX78IZfrb
       - PORT=8000
       - HOST=0.0.0.0
+    networks:
+      - dokploy-network
 
   redis:
     image: ${REDIS_IMAGE:-redis:7.2-alpine}
     restart: always
     volumes:
       - redis-data:/data
+    networks:
+      - dokploy-network
 
 volumes:
   postgres-db:
   # minio-data:
   storage_volume:
   redis-data:
+
+networks:
+  dokploy-network:
+    external: true
