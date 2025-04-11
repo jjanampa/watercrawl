@@ -126,7 +126,7 @@ services:
     image: ${NEGINX_IMAGE:-nginx:1.25-alpine}
     restart: always
     ports:
-      - "80:80"
+      - "80"
     volumes:
       - ./nginx:/etc/nginx/conf.d:ro
       - storage_volume:/var/www/storage
